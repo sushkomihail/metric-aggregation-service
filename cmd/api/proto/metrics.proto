@@ -1,0 +1,58 @@
+syntax = "proto3";
+package metrics;
+
+option go_package = "generated/metrics";
+
+import "google/protobuf/timestamp.proto";
+
+enum MetricType {
+  COUNTER = 0;
+  GAUGE = 1;
+  HISTOGRAM = 2;
+}
+
+service MetricsService {
+  rpc SendMetric(MetricRequest) returns (MetricResponse);
+  rpc GetAggregatedMetrics(AggregatedMetricsRequest) returns (AggregatedMetricsResponse);
+}
+
+message MetricRequest {
+  string id = 1;
+  string name = 2;
+  MetricType type = 3;
+  double value = 4;
+  map<string, string> tags = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message MetricResponse {
+  string id = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message AggregatedMetricsRequest {
+  string metric_name = 1;
+  map<string, string> tags = 2;
+  google.protobuf.Timestamp time_window_start = 3;
+  google.protobuf.Timestamp time_window_end = 4;
+}
+
+message AggregatedMetric {
+  string metric_name = 1;
+  google.protobuf.Timestamp time_window_start = 2;
+  google.protobuf.Timestamp time_window_end = 3;
+  int64 count = 4;
+  double sum = 5;
+  double avg = 6;
+  double min = 7;
+  double max = 8;
+  double p50 = 9;
+  double p95 = 10;
+  double p99 = 11;
+  map<string, string> tags = 12;
+}
+
+message AggregatedMetricsResponse {
+  repeated AggregatedMetric metrics = 1;
+}

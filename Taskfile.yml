@@ -1,0 +1,6 @@
+version: '3'
+
+tasks:
+  protoc_gen:
+    cmds:
+      - protoc --go_out=./cmd/api/proto --go-grpc_out=./cmd/api/proto ./cmd/api/proto/metrics.proto
