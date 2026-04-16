@@ -2,20 +2,19 @@ package models
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type MetricType int
 
 const (
-	COUNTER MetricType = iota
-	GAUGE
-	HISTOGRAM
+	Unknown MetricType = iota
+	Counter
+	Gauge
+	Histogram
 )
 
 type Metric struct {
-	Id        uuid.UUID
+	Id        int
 	Name      string
 	Value     float64
 	Type      MetricType
@@ -24,11 +23,15 @@ type Metric struct {
 }
 
 type AggregatedMetric struct {
-	MetricId uuid.UUID
-	Sum      int
-	Count    int
-	Rate     float64
-	P50      float64
-	P95      float64
-	P99      float64
+	Id        int       `redis:"id"`
+	Name      string    `redis:"name"`
+	Count     int       `redis:"count"`
+	Rate      float64   `redis:"rate"`
+	Sum       float64   `redis:"sum"`
+	Min       float64   `redis:"min"`
+	Max       float64   `redis:"max"`
+	P50       float64   `redis:"p50"`
+	P95       float64   `redis:"p95"`
+	P99       float64   `redis:"p99"`
+	CreatedAt time.Time `redis:"created_at"`
 }

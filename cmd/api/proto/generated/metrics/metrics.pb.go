@@ -73,7 +73,7 @@ func (MetricType) EnumDescriptor() ([]byte, []int) {
 
 type MetricRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Type          MetricType             `protobuf:"varint,3,opt,name=type,proto3,enum=metrics.MetricType" json:"type,omitempty"`
 	Value         float64                `protobuf:"fixed64,4,opt,name=value,proto3" json:"value,omitempty"`
@@ -113,11 +113,11 @@ func (*MetricRequest) Descriptor() ([]byte, []int) {
 	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *MetricRequest) GetId() string {
+func (x *MetricRequest) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return 0
 }
 
 func (x *MetricRequest) GetName() string {
@@ -157,7 +157,7 @@ func (x *MetricRequest) GetCreatedAt() *timestamppb.Timestamp {
 
 type MetricResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
 	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -194,11 +194,11 @@ func (*MetricResponse) Descriptor() ([]byte, []int) {
 	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *MetricResponse) GetId() string {
+func (x *MetricResponse) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return 0
 }
 
 func (x *MetricResponse) GetSuccess() bool {
@@ -289,8 +289,8 @@ type AggregatedMetric struct {
 	TimeWindowStart *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=time_window_start,json=timeWindowStart,proto3" json:"time_window_start,omitempty"`
 	TimeWindowEnd   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=time_window_end,json=timeWindowEnd,proto3" json:"time_window_end,omitempty"`
 	Count           int64                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-	Sum             float64                `protobuf:"fixed64,5,opt,name=sum,proto3" json:"sum,omitempty"`
-	Avg             float64                `protobuf:"fixed64,6,opt,name=avg,proto3" json:"avg,omitempty"`
+	Rate            float64                `protobuf:"fixed64,5,opt,name=rate,proto3" json:"rate,omitempty"`
+	Sum             float64                `protobuf:"fixed64,6,opt,name=sum,proto3" json:"sum,omitempty"`
 	Min             float64                `protobuf:"fixed64,7,opt,name=min,proto3" json:"min,omitempty"`
 	Max             float64                `protobuf:"fixed64,8,opt,name=max,proto3" json:"max,omitempty"`
 	P50             float64                `protobuf:"fixed64,9,opt,name=p50,proto3" json:"p50,omitempty"`
@@ -359,16 +359,16 @@ func (x *AggregatedMetric) GetCount() int64 {
 	return 0
 }
 
-func (x *AggregatedMetric) GetSum() float64 {
+func (x *AggregatedMetric) GetRate() float64 {
 	if x != nil {
-		return x.Sum
+		return x.Rate
 	}
 	return 0
 }
 
-func (x *AggregatedMetric) GetAvg() float64 {
+func (x *AggregatedMetric) GetSum() float64 {
 	if x != nil {
-		return x.Avg
+		return x.Sum
 	}
 	return 0
 }
@@ -465,7 +465,7 @@ const file_cmd_api_proto_metrics_proto_rawDesc = "" +
 	"\n" +
 	"\x1bcmd/api/proto/metrics.proto\x12\ametrics\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9c\x02\n" +
 	"\rMetricRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
 	"\x04type\x18\x03 \x01(\x0e2\x13.metrics.MetricTypeR\x04type\x12\x14\n" +
 	"\x05value\x18\x04 \x01(\x01R\x05value\x124\n" +
@@ -476,7 +476,7 @@ const file_cmd_api_proto_metrics_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x0eMetricResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x18\n" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessage\"\xc1\x02\n" +
 	"\x18AggregatedMetricsRequest\x12\x1f\n" +
@@ -487,15 +487,15 @@ const file_cmd_api_proto_metrics_proto_rawDesc = "" +
 	"\x0ftime_window_end\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\rtimeWindowEnd\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc5\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc7\x03\n" +
 	"\x10AggregatedMetric\x12\x1f\n" +
 	"\vmetric_name\x18\x01 \x01(\tR\n" +
 	"metricName\x12F\n" +
 	"\x11time_window_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x0ftimeWindowStart\x12B\n" +
 	"\x0ftime_window_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\rtimeWindowEnd\x12\x14\n" +
-	"\x05count\x18\x04 \x01(\x03R\x05count\x12\x10\n" +
-	"\x03sum\x18\x05 \x01(\x01R\x03sum\x12\x10\n" +
-	"\x03avg\x18\x06 \x01(\x01R\x03avg\x12\x10\n" +
+	"\x05count\x18\x04 \x01(\x03R\x05count\x12\x12\n" +
+	"\x04rate\x18\x05 \x01(\x01R\x04rate\x12\x10\n" +
+	"\x03sum\x18\x06 \x01(\x01R\x03sum\x12\x10\n" +
 	"\x03min\x18\a \x01(\x01R\x03min\x12\x10\n" +
 	"\x03max\x18\b \x01(\x01R\x03max\x12\x10\n" +
 	"\x03p50\x18\t \x01(\x01R\x03p50\x12\x10\n" +

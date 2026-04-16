@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/google/uuid"
 	pb "github.com/sushkomihail/metric-aggregation-service/cmd/api/proto/generated/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/models"
 	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/service"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type MetricsServer struct {
@@ -26,7 +25,7 @@ func NewMetricsServer(aggregator *service.Aggregator, processor *service.Process
 }
 
 func (s *MetricsServer) SendMetric(ctx context.Context, req *pb.MetricRequest) (*pb.MetricResponse, error) {
-	metric, err := s.convertProtoToServiceStruct(req)
+	metric, err := getServiceMetricStruct(req)
 	if err != nil {
 		log.Println("can not convert proto to service struct")
 		return nil, err
@@ -34,15 +33,16 @@ func (s *MetricsServer) SendMetric(ctx context.Context, req *pb.MetricRequest) (
 
 	err = s.aggregator.AddMetric(ctx, metric)
 	if err != nil {
-		log.Println("can not add metric")
+		log.Println("can not add metric: ", err)
 		return &pb.MetricResponse{
-			Id:      metric.Id.String(),
+			Id:      -1,
 			Success: false,
+			Message: fmt.Sprintf("can not add metric: %v", err),
 		}, err
 	}
 
 	return &pb.MetricResponse{
-		Id:      metric.Id.String(),
+		Id:      int64(metric.Id),
 		Success: true,
 	}, nil
 }
@@ -51,28 +51,70 @@ func (s *MetricsServer) GetAggregatedMetrics(
 	ctx context.Context,
 	req *pb.AggregatedMetricsRequest,
 ) (*pb.AggregatedMetricsResponse, error) {
-	return &pb.AggregatedMetricsResponse{}, nil
+	start, end := req.TimeWindowStart.AsTime(), req.TimeWindowEnd.AsTime()
+	metrics, err := s.aggregator.GetAggregatedMetrics(ctx, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	protoMetrics := make([]*pb.AggregatedMetric, len(metrics))
+	for i, metric := range metrics {
+		protoMetrics[i] = getProtoAggregatedMetricStruct(metric, req.TimeWindowStart, req.TimeWindowEnd)
+	}
+
+	return &pb.AggregatedMetricsResponse{
+		Metrics: protoMetrics,
+	}, nil
 }
 
-func (s *MetricsServer) convertProtoToServiceStruct(req *pb.MetricRequest) (*models.Metric, error) {
+func getServiceMetricStruct(req *pb.MetricRequest) (*models.Metric, error) {
 	metric := &models.Metric{
-		Id:        uuid.New(),
-		Name:      req.GetName(),
-		Value:     req.GetValue(),
-		Tags:      req.GetTags(),
-		CreatedAt: time.Now(),
+		Name:  req.GetName(),
+		Value: req.GetValue(),
+		Tags:  req.GetTags(),
 	}
 
-	switch req.GetType() {
-	case pb.MetricType_COUNTER:
-		metric.Type = models.COUNTER
-	case pb.MetricType_GAUGE:
-		metric.Type = models.GAUGE
-	case pb.MetricType_HISTOGRAM:
-		metric.Type = models.HISTOGRAM
-	default:
-		return nil, fmt.Errorf("unknown metric type: %s", req.GetType())
+	metricType, err := getServiceMetricType(req.GetType())
+	if err != nil {
+		return nil, err
 	}
 
+	metric.Type = metricType
 	return metric, nil
+}
+
+func getProtoAggregatedMetricStruct(
+	metric *models.AggregatedMetric,
+	start, end *timestamppb.Timestamp,
+) *pb.AggregatedMetric {
+	return &pb.AggregatedMetric{
+		MetricName:      metric.Name,
+		TimeWindowStart: start,
+		TimeWindowEnd:   end,
+		Count:           int64(metric.Count),
+		Rate:            metric.Rate,
+		Sum:             metric.Sum,
+		Min:             metric.Min,
+		Max:             metric.Max,
+		P50:             metric.P50,
+		P95:             metric.P95,
+		P99:             metric.P99,
+	}
+}
+
+func getServiceMetricType(protoMetricType pb.MetricType) (models.MetricType, error) {
+	metricType := models.Unknown
+
+	switch protoMetricType {
+	case pb.MetricType_COUNTER:
+		metricType = models.Counter
+	case pb.MetricType_GAUGE:
+		metricType = models.Gauge
+	case pb.MetricType_HISTOGRAM:
+		metricType = models.Histogram
+	default:
+		return metricType, fmt.Errorf("unknown metric type: %s", protoMetricType)
+	}
+
+	return metricType, nil
 }

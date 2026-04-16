@@ -17,7 +17,7 @@ service MetricsService {
 }
 
 message MetricRequest {
-  string id = 1;
+  int64 id = 1;
   string name = 2;
   MetricType type = 3;
   double value = 4;
@@ -26,7 +26,7 @@ message MetricRequest {
 }
 
 message MetricResponse {
-  string id = 1;
+  int64 id = 1;
   bool success = 2;
   string message = 3;
 }
@@ -43,8 +43,8 @@ message AggregatedMetric {
   google.protobuf.Timestamp time_window_start = 2;
   google.protobuf.Timestamp time_window_end = 3;
   int64 count = 4;
-  double sum = 5;
-  double avg = 6;
+  double rate = 5;
+  double sum = 6;
   double min = 7;
   double max = 8;
   double p50 = 9;

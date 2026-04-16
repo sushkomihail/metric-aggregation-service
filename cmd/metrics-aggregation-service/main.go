@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -14,9 +15,27 @@ import (
 	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/repository/redis"
 	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/service"
 	"google.golang.org/grpc"
+	"gopkg.in/yaml.v3"
 )
 
+func parseRedisConfig() redis.Config {
+	data, err := os.ReadFile("redis.yml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var config redis.Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return config
+}
+
 func main() {
+	redisConfig := parseRedisConfig()
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("error loading .env file")
@@ -35,7 +54,12 @@ func main() {
 		}
 	}()
 
-	redisClient := redis.NewClient("localhost:6379", "", 0)
+	ctx := context.Background()
+	redisClient, err := redis.NewClient(ctx, redisConfig)
+	if err != nil {
+		log.Fatalf("failed to create redis client: %v", err)
+	}
+
 	defer func() {
 		err = redisClient.Close()
 		if err != nil {
@@ -43,14 +67,15 @@ func main() {
 		}
 	}()
 
-	ctx := context.Background()
 	postgres := db.NewPostgres(ctx)
 	defer postgres.CloseConnection(ctx)
 
 	aggregator := service.NewAggregator(postgres, redisClient)
 
-	processor := service.NewProcessor(10 * time.Second)
-	// processor.Run(context.Background())
+	processor := service.NewProcessor(postgres, redisClient, 3*time.Second)
+	go func() {
+		processor.Run(ctx)
+	}()
 
 	s := grpc.NewServer()
 	pb.RegisterMetricsServiceServer(s, srv.NewMetricsServer(aggregator, processor))
