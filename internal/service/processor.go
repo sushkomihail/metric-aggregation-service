@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/models"
-	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/repository/db"
-	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/repository/redis"
+	"github.com/sushkomihail/metric-aggregation-service/internal/repository/db"
+	"github.com/sushkomihail/metric-aggregation-service/internal/repository/redis"
+	"github.com/sushkomihail/metric-aggregation-service/pkg/models"
 )
 
 type Processor struct {

@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/models"
+	"github.com/sushkomihail/metric-aggregation-service/internal/config"
+	"github.com/sushkomihail/metric-aggregation-service/pkg/models"
 )
 
 type DB interface {
 	AddMetric(context.Context, *models.Metric) error
+	AddHttpMetric(context.Context, *models.HttpMetric) error
 	AddAggregatedMetric(context.Context, *models.AggregatedMetric) error
 	GetUnprocessedMetrics(context.Context, time.Time, time.Time) ([]*models.Metric, error)
 	GetAggregatedMetrics(context.Context, time.Time, time.Time) ([]*models.AggregatedMetric, error)
@@ -24,13 +25,13 @@ type Postgres struct {
 	mu   sync.RWMutex
 }
 
-func NewPostgres(ctx context.Context) *Postgres {
+func NewPostgres(ctx context.Context, config config.PostgresConfig) *Postgres {
 	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_ADDR"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_DB"))
+		config.User,
+		config.Password,
+		config.Addr,
+		config.Port,
+		config.DB)
 	conn, err := pgx.Connect(ctx, url)
 	if err != nil {
 		log.Fatal(err)
@@ -52,13 +53,36 @@ func (p *Postgres) AddMetric(ctx context.Context, metric *models.Metric) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	query := `INSERT INTO metrics (name, value, type, tags) VALUES ($1, $2, $3, $4) RETURNING id`
+	query :=
+		`INSERT INTO metrics (name, value, type, tags) VALUES ($1, $2, $3, $4) RETURNING id`
 	err := p.conn.QueryRow(ctx, query, metric.Name, metric.Value, int(metric.Type), metric.Tags).Scan(&metric.Id)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("postgres: added metric")
+	return nil
+}
+
+func (p *Postgres) AddHttpMetric(ctx context.Context, metric *models.HttpMetric) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	query :=
+		`INSERT INTO http_metrics (method, endpoint, code, duration, request_size, response_size)
+		 VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err := p.conn.Exec(ctx, query,
+		metric.Method,
+		metric.Endpoint,
+		metric.Code,
+		metric.Duration,
+		metric.RequestSize,
+		metric.ResponseSize)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("postgres: added http metric")
 	return nil
 }
 
@@ -109,7 +133,7 @@ func (p *Postgres) GetUnprocessedMetrics(ctx context.Context, start, end time.Ti
 			&metric.Value,
 			&metric.Type,
 			&metric.Tags,
-			&metric.CreatedAt,
+			&metric.Timestamp,
 			&isProcessed)
 		if err != nil {
 			return nil, err

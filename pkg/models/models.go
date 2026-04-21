@@ -19,7 +19,19 @@ type Metric struct {
 	Value     float64
 	Type      MetricType
 	Tags      map[string]string
-	CreatedAt time.Time
+	Timestamp time.Time
+}
+
+type HttpMetric struct {
+	Method   string `json:"method"`
+	Endpoint string `json:"endpoint"`
+	// TODO: remove headers
+	Headers      map[string][]string `json:"headers"`
+	Code         int                 `json:"code"`
+	Duration     time.Duration       `json:"duration"`
+	RequestSize  int64               `json:"request_size"`
+	ResponseSize int64               `json:"response_size"`
+	Timestamp    time.Time           `json:"timestamp"`
 }
 
 type AggregatedMetric struct {

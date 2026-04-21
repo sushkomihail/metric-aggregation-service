@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/models"
-	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/repository/db"
-	"github.com/sushkomihail/metric-aggregation-service/cmd/internal/repository/redis"
+	"github.com/sushkomihail/metric-aggregation-service/internal/repository/db"
+	"github.com/sushkomihail/metric-aggregation-service/internal/repository/redis"
+	"github.com/sushkomihail/metric-aggregation-service/pkg/models"
 )
 
 type Aggregator struct {
@@ -31,6 +31,10 @@ func (a *Aggregator) AddMetric(ctx context.Context, metric *models.Metric) error
 
 	err := <-errChan
 	return err
+}
+
+func (a *Aggregator) AddHttpMetric(ctx context.Context, metric *models.HttpMetric) error {
+	return nil
 }
 
 func (a *Aggregator) GetAggregatedMetrics(

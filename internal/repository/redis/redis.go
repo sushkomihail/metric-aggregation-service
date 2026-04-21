@@ -2,25 +2,25 @@ package redis
 
 import (
 	"context"
-	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/sushkomihail/metric-aggregation-service/internal/config"
 )
 
 type Client struct {
 	rdb *redis.Client
 }
 
-func NewClient(ctx context.Context, config Config) (*Client, error) {
-	// TODO: read timeouts from .yml
+func NewClient(ctx context.Context, config config.RedisConfig) (*Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         config.Addr,
 		Password:     config.Password,
-		DB:           config.DB,
 		Username:     config.User,
-		DialTimeout:  10 * time.Second,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		DB:           config.DB,
+		MaxRetries:   config.MaxRetries,
+		DialTimeout:  config.DialTimeout,
+		ReadTimeout:  config.ReadTimeout,
+		WriteTimeout: config.WriteTimeout,
 	})
 
 	if err := rdb.Ping(ctx).Err(); err != nil {

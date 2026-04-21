@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.4
-// source: cmd/api/proto/metrics.proto
+// source: api/proto/metrics.proto
 
 package metrics
 
@@ -55,11 +55,11 @@ func (x MetricType) String() string {
 }
 
 func (MetricType) Descriptor() protoreflect.EnumDescriptor {
-	return file_cmd_api_proto_metrics_proto_enumTypes[0].Descriptor()
+	return file_api_proto_metrics_proto_enumTypes[0].Descriptor()
 }
 
 func (MetricType) Type() protoreflect.EnumType {
-	return &file_cmd_api_proto_metrics_proto_enumTypes[0]
+	return &file_api_proto_metrics_proto_enumTypes[0]
 }
 
 func (x MetricType) Number() protoreflect.EnumNumber {
@@ -68,24 +68,23 @@ func (x MetricType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MetricType.Descriptor instead.
 func (MetricType) EnumDescriptor() ([]byte, []int) {
-	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_metrics_proto_rawDescGZIP(), []int{0}
 }
 
 type MetricRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Type          MetricType             `protobuf:"varint,3,opt,name=type,proto3,enum=metrics.MetricType" json:"type,omitempty"`
 	Value         float64                `protobuf:"fixed64,4,opt,name=value,proto3" json:"value,omitempty"`
 	Tags          map[string]string      `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MetricRequest) Reset() {
 	*x = MetricRequest{}
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[0]
+	mi := &file_api_proto_metrics_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +96,7 @@ func (x *MetricRequest) String() string {
 func (*MetricRequest) ProtoMessage() {}
 
 func (x *MetricRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[0]
+	mi := &file_api_proto_metrics_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,14 +109,7 @@ func (x *MetricRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricRequest.ProtoReflect.Descriptor instead.
 func (*MetricRequest) Descriptor() ([]byte, []int) {
-	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *MetricRequest) GetId() int64 {
-	if x != nil {
-		return x.Id
-	}
-	return 0
+	return file_api_proto_metrics_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *MetricRequest) GetName() string {
@@ -148,9 +140,9 @@ func (x *MetricRequest) GetTags() map[string]string {
 	return nil
 }
 
-func (x *MetricRequest) GetCreatedAt() *timestamppb.Timestamp {
+func (x *MetricRequest) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
-		return x.CreatedAt
+		return x.Timestamp
 	}
 	return nil
 }
@@ -166,7 +158,7 @@ type MetricResponse struct {
 
 func (x *MetricResponse) Reset() {
 	*x = MetricResponse{}
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[1]
+	mi := &file_api_proto_metrics_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -178,7 +170,7 @@ func (x *MetricResponse) String() string {
 func (*MetricResponse) ProtoMessage() {}
 
 func (x *MetricResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[1]
+	mi := &file_api_proto_metrics_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -191,7 +183,7 @@ func (x *MetricResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricResponse.ProtoReflect.Descriptor instead.
 func (*MetricResponse) Descriptor() ([]byte, []int) {
-	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_metrics_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *MetricResponse) GetId() int64 {
@@ -215,6 +207,66 @@ func (x *MetricResponse) GetMessage() string {
 	return ""
 }
 
+type StreamResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReceivedCount int32                  `protobuf:"varint,1,opt,name=received_count,json=receivedCount,proto3" json:"received_count,omitempty"`
+	FailedCount   int32                  `protobuf:"varint,2,opt,name=failed_count,json=failedCount,proto3" json:"failed_count,omitempty"`
+	Errors        []string               `protobuf:"bytes,3,rep,name=errors,proto3" json:"errors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamResponse) Reset() {
+	*x = StreamResponse{}
+	mi := &file_api_proto_metrics_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamResponse) ProtoMessage() {}
+
+func (x *StreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_metrics_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamResponse.ProtoReflect.Descriptor instead.
+func (*StreamResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_metrics_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *StreamResponse) GetReceivedCount() int32 {
+	if x != nil {
+		return x.ReceivedCount
+	}
+	return 0
+}
+
+func (x *StreamResponse) GetFailedCount() int32 {
+	if x != nil {
+		return x.FailedCount
+	}
+	return 0
+}
+
+func (x *StreamResponse) GetErrors() []string {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
 type AggregatedMetricsRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	MetricName      string                 `protobuf:"bytes,1,opt,name=metric_name,json=metricName,proto3" json:"metric_name,omitempty"`
@@ -227,7 +279,7 @@ type AggregatedMetricsRequest struct {
 
 func (x *AggregatedMetricsRequest) Reset() {
 	*x = AggregatedMetricsRequest{}
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[2]
+	mi := &file_api_proto_metrics_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -239,7 +291,7 @@ func (x *AggregatedMetricsRequest) String() string {
 func (*AggregatedMetricsRequest) ProtoMessage() {}
 
 func (x *AggregatedMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[2]
+	mi := &file_api_proto_metrics_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -252,7 +304,7 @@ func (x *AggregatedMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AggregatedMetricsRequest.ProtoReflect.Descriptor instead.
 func (*AggregatedMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_metrics_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AggregatedMetricsRequest) GetMetricName() string {
@@ -303,7 +355,7 @@ type AggregatedMetric struct {
 
 func (x *AggregatedMetric) Reset() {
 	*x = AggregatedMetric{}
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[3]
+	mi := &file_api_proto_metrics_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -315,7 +367,7 @@ func (x *AggregatedMetric) String() string {
 func (*AggregatedMetric) ProtoMessage() {}
 
 func (x *AggregatedMetric) ProtoReflect() protoreflect.Message {
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[3]
+	mi := &file_api_proto_metrics_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -328,7 +380,7 @@ func (x *AggregatedMetric) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AggregatedMetric.ProtoReflect.Descriptor instead.
 func (*AggregatedMetric) Descriptor() ([]byte, []int) {
-	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_metrics_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AggregatedMetric) GetMetricName() string {
@@ -424,7 +476,7 @@ type AggregatedMetricsResponse struct {
 
 func (x *AggregatedMetricsResponse) Reset() {
 	*x = AggregatedMetricsResponse{}
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[4]
+	mi := &file_api_proto_metrics_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -436,7 +488,7 @@ func (x *AggregatedMetricsResponse) String() string {
 func (*AggregatedMetricsResponse) ProtoMessage() {}
 
 func (x *AggregatedMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_cmd_api_proto_metrics_proto_msgTypes[4]
+	mi := &file_api_proto_metrics_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -449,7 +501,7 @@ func (x *AggregatedMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AggregatedMetricsResponse.ProtoReflect.Descriptor instead.
 func (*AggregatedMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_cmd_api_proto_metrics_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_metrics_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AggregatedMetricsResponse) GetMetrics() []*AggregatedMetric {
@@ -459,26 +511,28 @@ func (x *AggregatedMetricsResponse) GetMetrics() []*AggregatedMetric {
 	return nil
 }
 
-var File_cmd_api_proto_metrics_proto protoreflect.FileDescriptor
+var File_api_proto_metrics_proto protoreflect.FileDescriptor
 
-const file_cmd_api_proto_metrics_proto_rawDesc = "" +
+const file_api_proto_metrics_proto_rawDesc = "" +
 	"\n" +
-	"\x1bcmd/api/proto/metrics.proto\x12\ametrics\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9c\x02\n" +
-	"\rMetricRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x17api/proto/metrics.proto\x12\ametrics\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8b\x02\n" +
+	"\rMetricRequest\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
 	"\x04type\x18\x03 \x01(\x0e2\x13.metrics.MetricTypeR\x04type\x12\x14\n" +
 	"\x05value\x18\x04 \x01(\x01R\x05value\x124\n" +
-	"\x04tags\x18\x05 \x03(\v2 .metrics.MetricRequest.TagsEntryR\x04tags\x129\n" +
-	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x1a7\n" +
+	"\x04tags\x18\x05 \x03(\v2 .metrics.MetricRequest.TagsEntryR\x04tags\x128\n" +
+	"\ttimestamp\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"T\n" +
 	"\x0eMetricResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x18\n" +
 	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\"\xc1\x02\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"r\n" +
+	"\x0eStreamResponse\x12%\n" +
+	"\x0ereceived_count\x18\x01 \x01(\x05R\rreceivedCount\x12!\n" +
+	"\ffailed_count\x18\x02 \x01(\x05R\vfailedCount\x12\x16\n" +
+	"\x06errors\x18\x03 \x03(\tR\x06errors\"\xc1\x02\n" +
 	"\x18AggregatedMetricsRequest\x12\x1f\n" +
 	"\vmetric_name\x18\x01 \x01(\tR\n" +
 	"metricName\x12?\n" +
@@ -512,81 +566,85 @@ const file_cmd_api_proto_metrics_proto_rawDesc = "" +
 	"MetricType\x12\v\n" +
 	"\aCOUNTER\x10\x00\x12\t\n" +
 	"\x05GAUGE\x10\x01\x12\r\n" +
-	"\tHISTOGRAM\x10\x022\xae\x01\n" +
+	"\tHISTOGRAM\x10\x022\xf2\x01\n" +
 	"\x0eMetricsService\x12=\n" +
 	"\n" +
-	"SendMetric\x12\x16.metrics.MetricRequest\x1a\x17.metrics.MetricResponse\x12]\n" +
+	"SendMetric\x12\x16.metrics.MetricRequest\x1a\x17.metrics.MetricResponse\x12B\n" +
+	"\rStreamMetrics\x12\x16.metrics.MetricRequest\x1a\x17.metrics.StreamResponse(\x01\x12]\n" +
 	"\x14GetAggregatedMetrics\x12!.metrics.AggregatedMetricsRequest\x1a\".metrics.AggregatedMetricsResponseB\x13Z\x11generated/metricsb\x06proto3"
 
 var (
-	file_cmd_api_proto_metrics_proto_rawDescOnce sync.Once
-	file_cmd_api_proto_metrics_proto_rawDescData []byte
+	file_api_proto_metrics_proto_rawDescOnce sync.Once
+	file_api_proto_metrics_proto_rawDescData []byte
 )
 
-func file_cmd_api_proto_metrics_proto_rawDescGZIP() []byte {
-	file_cmd_api_proto_metrics_proto_rawDescOnce.Do(func() {
-		file_cmd_api_proto_metrics_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_cmd_api_proto_metrics_proto_rawDesc), len(file_cmd_api_proto_metrics_proto_rawDesc)))
+func file_api_proto_metrics_proto_rawDescGZIP() []byte {
+	file_api_proto_metrics_proto_rawDescOnce.Do(func() {
+		file_api_proto_metrics_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_metrics_proto_rawDesc), len(file_api_proto_metrics_proto_rawDesc)))
 	})
-	return file_cmd_api_proto_metrics_proto_rawDescData
+	return file_api_proto_metrics_proto_rawDescData
 }
 
-var file_cmd_api_proto_metrics_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_cmd_api_proto_metrics_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_cmd_api_proto_metrics_proto_goTypes = []any{
+var file_api_proto_metrics_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_api_proto_metrics_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_proto_metrics_proto_goTypes = []any{
 	(MetricType)(0),                   // 0: metrics.MetricType
 	(*MetricRequest)(nil),             // 1: metrics.MetricRequest
 	(*MetricResponse)(nil),            // 2: metrics.MetricResponse
-	(*AggregatedMetricsRequest)(nil),  // 3: metrics.AggregatedMetricsRequest
-	(*AggregatedMetric)(nil),          // 4: metrics.AggregatedMetric
-	(*AggregatedMetricsResponse)(nil), // 5: metrics.AggregatedMetricsResponse
-	nil,                               // 6: metrics.MetricRequest.TagsEntry
-	nil,                               // 7: metrics.AggregatedMetricsRequest.TagsEntry
-	nil,                               // 8: metrics.AggregatedMetric.TagsEntry
-	(*timestamppb.Timestamp)(nil),     // 9: google.protobuf.Timestamp
+	(*StreamResponse)(nil),            // 3: metrics.StreamResponse
+	(*AggregatedMetricsRequest)(nil),  // 4: metrics.AggregatedMetricsRequest
+	(*AggregatedMetric)(nil),          // 5: metrics.AggregatedMetric
+	(*AggregatedMetricsResponse)(nil), // 6: metrics.AggregatedMetricsResponse
+	nil,                               // 7: metrics.MetricRequest.TagsEntry
+	nil,                               // 8: metrics.AggregatedMetricsRequest.TagsEntry
+	nil,                               // 9: metrics.AggregatedMetric.TagsEntry
+	(*timestamppb.Timestamp)(nil),     // 10: google.protobuf.Timestamp
 }
-var file_cmd_api_proto_metrics_proto_depIdxs = []int32{
+var file_api_proto_metrics_proto_depIdxs = []int32{
 	0,  // 0: metrics.MetricRequest.type:type_name -> metrics.MetricType
-	6,  // 1: metrics.MetricRequest.tags:type_name -> metrics.MetricRequest.TagsEntry
-	9,  // 2: metrics.MetricRequest.created_at:type_name -> google.protobuf.Timestamp
-	7,  // 3: metrics.AggregatedMetricsRequest.tags:type_name -> metrics.AggregatedMetricsRequest.TagsEntry
-	9,  // 4: metrics.AggregatedMetricsRequest.time_window_start:type_name -> google.protobuf.Timestamp
-	9,  // 5: metrics.AggregatedMetricsRequest.time_window_end:type_name -> google.protobuf.Timestamp
-	9,  // 6: metrics.AggregatedMetric.time_window_start:type_name -> google.protobuf.Timestamp
-	9,  // 7: metrics.AggregatedMetric.time_window_end:type_name -> google.protobuf.Timestamp
-	8,  // 8: metrics.AggregatedMetric.tags:type_name -> metrics.AggregatedMetric.TagsEntry
-	4,  // 9: metrics.AggregatedMetricsResponse.metrics:type_name -> metrics.AggregatedMetric
+	7,  // 1: metrics.MetricRequest.tags:type_name -> metrics.MetricRequest.TagsEntry
+	10, // 2: metrics.MetricRequest.timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 3: metrics.AggregatedMetricsRequest.tags:type_name -> metrics.AggregatedMetricsRequest.TagsEntry
+	10, // 4: metrics.AggregatedMetricsRequest.time_window_start:type_name -> google.protobuf.Timestamp
+	10, // 5: metrics.AggregatedMetricsRequest.time_window_end:type_name -> google.protobuf.Timestamp
+	10, // 6: metrics.AggregatedMetric.time_window_start:type_name -> google.protobuf.Timestamp
+	10, // 7: metrics.AggregatedMetric.time_window_end:type_name -> google.protobuf.Timestamp
+	9,  // 8: metrics.AggregatedMetric.tags:type_name -> metrics.AggregatedMetric.TagsEntry
+	5,  // 9: metrics.AggregatedMetricsResponse.metrics:type_name -> metrics.AggregatedMetric
 	1,  // 10: metrics.MetricsService.SendMetric:input_type -> metrics.MetricRequest
-	3,  // 11: metrics.MetricsService.GetAggregatedMetrics:input_type -> metrics.AggregatedMetricsRequest
-	2,  // 12: metrics.MetricsService.SendMetric:output_type -> metrics.MetricResponse
-	5,  // 13: metrics.MetricsService.GetAggregatedMetrics:output_type -> metrics.AggregatedMetricsResponse
-	12, // [12:14] is the sub-list for method output_type
-	10, // [10:12] is the sub-list for method input_type
+	1,  // 11: metrics.MetricsService.StreamMetrics:input_type -> metrics.MetricRequest
+	4,  // 12: metrics.MetricsService.GetAggregatedMetrics:input_type -> metrics.AggregatedMetricsRequest
+	2,  // 13: metrics.MetricsService.SendMetric:output_type -> metrics.MetricResponse
+	3,  // 14: metrics.MetricsService.StreamMetrics:output_type -> metrics.StreamResponse
+	6,  // 15: metrics.MetricsService.GetAggregatedMetrics:output_type -> metrics.AggregatedMetricsResponse
+	13, // [13:16] is the sub-list for method output_type
+	10, // [10:13] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
 }
 
-func init() { file_cmd_api_proto_metrics_proto_init() }
-func file_cmd_api_proto_metrics_proto_init() {
-	if File_cmd_api_proto_metrics_proto != nil {
+func init() { file_api_proto_metrics_proto_init() }
+func file_api_proto_metrics_proto_init() {
+	if File_api_proto_metrics_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cmd_api_proto_metrics_proto_rawDesc), len(file_cmd_api_proto_metrics_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_metrics_proto_rawDesc), len(file_api_proto_metrics_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_cmd_api_proto_metrics_proto_goTypes,
-		DependencyIndexes: file_cmd_api_proto_metrics_proto_depIdxs,
-		EnumInfos:         file_cmd_api_proto_metrics_proto_enumTypes,
-		MessageInfos:      file_cmd_api_proto_metrics_proto_msgTypes,
+		GoTypes:           file_api_proto_metrics_proto_goTypes,
+		DependencyIndexes: file_api_proto_metrics_proto_depIdxs,
+		EnumInfos:         file_api_proto_metrics_proto_enumTypes,
+		MessageInfos:      file_api_proto_metrics_proto_msgTypes,
 	}.Build()
-	File_cmd_api_proto_metrics_proto = out.File
-	file_cmd_api_proto_metrics_proto_goTypes = nil
-	file_cmd_api_proto_metrics_proto_depIdxs = nil
+	File_api_proto_metrics_proto = out.File
+	file_api_proto_metrics_proto_goTypes = nil
+	file_api_proto_metrics_proto_depIdxs = nil
 }

@@ -1,4 +1,4 @@
-CREATE TABLE metrics (
+CREATE TABLE IF NOT EXISTS metrics (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255),
     value FLOAT,
@@ -8,7 +8,18 @@ CREATE TABLE metrics (
     is_processed BOOLEAN DEFAULT FALSE
 );
 
-CREATE TABLE aggregated_metrics (
+CREATE TABLE IF NOT EXISTS http_metrics (
+    id SERIAL PRIMARY KEY,
+    method VARCHAR(255) NOT NULL,
+    endpoint VARCHAR(255) NOT NULL,
+    code INTEGER NOT NULL,
+    duration FLOAT NOT NULL ,
+    request_size INTEGER DEFAULT 0,
+    response_size INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS aggregated_metrics (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255),
     count INTEGER,

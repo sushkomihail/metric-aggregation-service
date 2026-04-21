@@ -13,22 +13,28 @@ enum MetricType {
 
 service MetricsService {
   rpc SendMetric(MetricRequest) returns (MetricResponse);
+  rpc StreamMetrics(stream MetricRequest) returns (StreamResponse);
   rpc GetAggregatedMetrics(AggregatedMetricsRequest) returns (AggregatedMetricsResponse);
 }
 
 message MetricRequest {
-  int64 id = 1;
   string name = 2;
   MetricType type = 3;
   double value = 4;
   map<string, string> tags = 5;
-  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp timestamp = 6;
 }
 
 message MetricResponse {
   int64 id = 1;
   bool success = 2;
   string message = 3;
+}
+
+message StreamResponse {
+  int32 received_count = 1;
+  int32 failed_count = 2;
+  repeated string errors = 3;
 }
 
 message AggregatedMetricsRequest {

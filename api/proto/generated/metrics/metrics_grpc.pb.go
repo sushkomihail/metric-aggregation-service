@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.4
-// source: cmd/api/proto/metrics.proto
+// source: api/proto/metrics.proto
 
 package metrics
 
@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	MetricsService_SendMetric_FullMethodName           = "/metrics.MetricsService/SendMetric"
+	MetricsService_StreamMetrics_FullMethodName        = "/metrics.MetricsService/StreamMetrics"
 	MetricsService_GetAggregatedMetrics_FullMethodName = "/metrics.MetricsService/GetAggregatedMetrics"
 )
 
@@ -28,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MetricsServiceClient interface {
 	SendMetric(ctx context.Context, in *MetricRequest, opts ...grpc.CallOption) (*MetricResponse, error)
+	StreamMetrics(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[MetricRequest, StreamResponse], error)
 	GetAggregatedMetrics(ctx context.Context, in *AggregatedMetricsRequest, opts ...grpc.CallOption) (*AggregatedMetricsResponse, error)
 }
 
@@ -49,6 +51,19 @@ func (c *metricsServiceClient) SendMetric(ctx context.Context, in *MetricRequest
 	return out, nil
 }
 
+func (c *metricsServiceClient) StreamMetrics(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[MetricRequest, StreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MetricsService_ServiceDesc.Streams[0], MetricsService_StreamMetrics_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[MetricRequest, StreamResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MetricsService_StreamMetricsClient = grpc.ClientStreamingClient[MetricRequest, StreamResponse]
+
 func (c *metricsServiceClient) GetAggregatedMetrics(ctx context.Context, in *AggregatedMetricsRequest, opts ...grpc.CallOption) (*AggregatedMetricsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AggregatedMetricsResponse)
@@ -64,6 +79,7 @@ func (c *metricsServiceClient) GetAggregatedMetrics(ctx context.Context, in *Agg
 // for forward compatibility.
 type MetricsServiceServer interface {
 	SendMetric(context.Context, *MetricRequest) (*MetricResponse, error)
+	StreamMetrics(grpc.ClientStreamingServer[MetricRequest, StreamResponse]) error
 	GetAggregatedMetrics(context.Context, *AggregatedMetricsRequest) (*AggregatedMetricsResponse, error)
 	mustEmbedUnimplementedMetricsServiceServer()
 }
@@ -77,6 +93,9 @@ type UnimplementedMetricsServiceServer struct{}
 
 func (UnimplementedMetricsServiceServer) SendMetric(context.Context, *MetricRequest) (*MetricResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendMetric not implemented")
+}
+func (UnimplementedMetricsServiceServer) StreamMetrics(grpc.ClientStreamingServer[MetricRequest, StreamResponse]) error {
+	return status.Error(codes.Unimplemented, "method StreamMetrics not implemented")
 }
 func (UnimplementedMetricsServiceServer) GetAggregatedMetrics(context.Context, *AggregatedMetricsRequest) (*AggregatedMetricsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAggregatedMetrics not implemented")
@@ -120,6 +139,13 @@ func _MetricsService_SendMetric_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetricsService_StreamMetrics_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MetricsServiceServer).StreamMetrics(&grpc.GenericServerStream[MetricRequest, StreamResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MetricsService_StreamMetricsServer = grpc.ClientStreamingServer[MetricRequest, StreamResponse]
+
 func _MetricsService_GetAggregatedMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AggregatedMetricsRequest)
 	if err := dec(in); err != nil {
@@ -154,6 +180,12 @@ var MetricsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MetricsService_GetAggregatedMetrics_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "cmd/api/proto/metrics.proto",
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamMetrics",
+			Handler:       _MetricsService_StreamMetrics_Handler,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "api/proto/metrics.proto",
 }
