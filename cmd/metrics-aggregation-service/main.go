@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	pb "github.com/sushkomihail/metric-aggregation-service/api/proto/generated/metrics"
+	"github.com/sushkomihail/metric-aggregation-service/internal/broker/kafka"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
 	srv "github.com/sushkomihail/metric-aggregation-service/internal/grpc"
 	"github.com/sushkomihail/metric-aggregation-service/internal/metrics"
@@ -18,19 +19,20 @@ import (
 )
 
 func main() {
-	var cfg config.Config
-	cfg.Load()
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("error loading .env file")
 	}
+
+	var cfg config.Config
+	cfg.Load()
 
 	lis, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	metrics.Register()
 	go func() {
 		err = metrics.Listen(":8081")
 		if err != nil {
@@ -58,7 +60,16 @@ func main() {
 
 	processor := service2.NewProcessor(postgres, redisClient, 3*time.Second)
 	go func() {
-		processor.Run(ctx)
+		processor.Start(ctx)
+	}()
+
+	consumer := kafka.NewConsumer(cfg.KafkaConfig(), aggregator, kafka.HttpTopic, "http-metrics")
+	go consumer.Consume(ctx)
+	defer func() {
+		err = consumer.Close()
+		if err != nil {
+			log.Fatalf("failed to close kafka consumer: %v", err)
+		}
 	}()
 
 	s := grpc.NewServer()

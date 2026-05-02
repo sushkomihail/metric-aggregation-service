@@ -5,7 +5,7 @@ import (
 	"time"
 
 	pb "github.com/sushkomihail/metric-aggregation-service/api/proto/generated/metrics"
-	"github.com/sushkomihail/metric-aggregation-service/internal/broker"
+	"github.com/sushkomihail/metric-aggregation-service/internal/broker/kafka"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -14,7 +14,7 @@ import (
 type GrpcClient struct {
 	client   pb.MetricsServiceClient
 	conn     *grpc.ClientConn
-	producer *broker.KafkaProducer
+	producer *kafka.Producer
 }
 
 type GrpcClientOptions struct {
@@ -25,7 +25,7 @@ type GrpcClientOptions struct {
 }
 
 func New(options GrpcClientOptions, config config.KafkaConfig) (*GrpcClient, error) {
-	p := broker.NewKafkaProducer(config)
+	p := kafka.NewProducer(config)
 
 	target := fmt.Sprintf("%s:%d", options.Addr, options.Port)
 	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -41,7 +41,7 @@ func New(options GrpcClientOptions, config config.KafkaConfig) (*GrpcClient, err
 	}, nil
 }
 
-func (c *GrpcClient) Producer() *broker.KafkaProducer {
+func (c *GrpcClient) Producer() *kafka.Producer {
 	return c.producer
 }
 

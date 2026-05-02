@@ -1,4 +1,4 @@
-package broker
+package kafka
 
 import (
 	"context"
@@ -12,22 +12,22 @@ const (
 	HttpTopic = "http-topic"
 )
 
-type KafkaProducer struct {
+type Producer struct {
 	writer *kafka.Writer
 }
 
-func NewKafkaProducer(config config.KafkaConfig) *KafkaProducer {
+func NewProducer(config config.KafkaConfig) *Producer {
 	writer := &kafka.Writer{
 		Addr:     kafka.TCP(strings.Split(config.Servers, ",")...),
 		Balancer: &kafka.LeastBytes{},
 	}
 
-	return &KafkaProducer{
+	return &Producer{
 		writer: writer,
 	}
 }
 
-func (p *KafkaProducer) Produce(ctx context.Context, message []byte, topic string) error {
+func (p *Producer) Produce(ctx context.Context, message []byte, topic string) error {
 	kafkaMsg := kafka.Message{
 		Topic: topic,
 		Value: message,
@@ -37,6 +37,6 @@ func (p *KafkaProducer) Produce(ctx context.Context, message []byte, topic strin
 	return err
 }
 
-func (p *KafkaProducer) Close() error {
+func (p *Producer) Close() error {
 	return p.writer.Close()
 }

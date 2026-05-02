@@ -8,7 +8,6 @@ import (
 )
 
 func Listen(address string) error {
-	registerMetrics()
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -18,5 +17,6 @@ func Listen(address string) error {
 			log.Println(err)
 		}
 	})
+
 	return http.ListenAndServe(address, mux)
 }

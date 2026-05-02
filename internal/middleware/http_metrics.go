@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sushkomihail/metric-aggregation-service/internal/broker"
+	"github.com/sushkomihail/metric-aggregation-service/internal/broker/kafka"
 	"github.com/sushkomihail/metric-aggregation-service/pkg/models"
 )
 
@@ -33,10 +33,10 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 }
 
 type HttpMetricMiddleware struct {
-	producer *broker.KafkaProducer
+	producer *kafka.Producer
 }
 
-func NewHttpMetricMiddleware(producer *broker.KafkaProducer) *HttpMetricMiddleware {
+func NewHttpMetricMiddleware(producer *kafka.Producer) *HttpMetricMiddleware {
 	return &HttpMetricMiddleware{
 		producer: producer,
 	}
@@ -45,11 +45,6 @@ func NewHttpMetricMiddleware(producer *broker.KafkaProducer) *HttpMetricMiddlewa
 func (m *HttpMetricMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
-
-		headers := make(map[string][]string)
-		for k, v := range r.Header {
-			headers[k] = v
-		}
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -67,7 +62,6 @@ func (m *HttpMetricMiddleware) Handler(next http.Handler) http.Handler {
 		metric := models.HttpMetric{
 			Method:       r.Method,
 			Endpoint:     r.URL.Path,
-			Headers:      headers,
 			Code:         wrapped.status,
 			Duration:     time.Since(startTime),
 			RequestSize:  int64(len(body)),
@@ -80,9 +74,11 @@ func (m *HttpMetricMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		err = m.producer.Produce(context.Background(), jsonData, broker.HttpTopic)
-		if err != nil {
-			fmt.Println(err)
-		}
+		go func() {
+			err = m.producer.Produce(context.Background(), jsonData, kafka.HttpTopic)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}()
 	})
 }

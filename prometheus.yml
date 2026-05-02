@@ -9,4 +9,5 @@ scrape_configs:
     scrape_timeout: 15s
 
     static_configs:
-      - targets: ['localhost:9090']
+      # set target 'localhost:9090' to run app in docker
+      - targets: ['host.docker.internal:8081']

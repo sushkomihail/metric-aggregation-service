@@ -11,10 +11,7 @@ import (
 	"github.com/sushkomihail/metric-aggregation-service/pkg/client"
 )
 
-type testHandler struct {
-}
-
-func (h *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func testHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("Hello World"))
 	if err != nil {
 		fmt.Println(err)
@@ -33,12 +30,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer func() {
+		if err = metricsClient.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
-	http.Handle("/something",
-		middleware.NewHttpMetricMiddleware(metricsClient.Producer()).Handler(&testHandler{}))
-	err = http.ListenAndServe(":5050", nil)
+	mw := middleware.NewHttpMetricMiddleware(metricsClient.Producer())
+	router := http.NewServeMux()
+	router.HandleFunc("/test", testHandler)
+	err = http.ListenAndServe(":5050", mw.Handler(router))
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 }

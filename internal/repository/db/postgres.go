@@ -17,6 +17,7 @@ type DB interface {
 	AddHttpMetric(context.Context, *models.HttpMetric) error
 	AddAggregatedMetric(context.Context, *models.AggregatedMetric) error
 	GetUnprocessedMetrics(context.Context, time.Time, time.Time) ([]*models.Metric, error)
+	GetHttpMetrics(context.Context, time.Time, time.Time) ([]*models.HttpMetric, error)
 	GetAggregatedMetrics(context.Context, time.Time, time.Time) ([]*models.AggregatedMetric, error)
 }
 
@@ -135,6 +136,40 @@ func (p *Postgres) GetUnprocessedMetrics(ctx context.Context, start, end time.Ti
 			&metric.Tags,
 			&metric.Timestamp,
 			&isProcessed)
+		if err != nil {
+			return nil, err
+		}
+
+		metrics = append(metrics, &metric)
+	}
+
+	return metrics, nil
+}
+
+func (p *Postgres) GetHttpMetrics(ctx context.Context, start, end time.Time) ([]*models.HttpMetric, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	query := `SELECT * FROM http_metrics WHERE created_at BETWEEN $1 AND $2`
+	rows, err := p.conn.Query(ctx, query, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	metrics := make([]*models.HttpMetric, 0)
+	for rows.Next() {
+		var metric models.HttpMetric
+		err = rows.Scan(
+			&metric.Id,
+			&metric.Method,
+			&metric.Endpoint,
+			&metric.Code,
+			&metric.Duration,
+			&metric.RequestSize,
+			&metric.ResponseSize,
+			&metric.Timestamp)
 		if err != nil {
 			return nil, err
 		}

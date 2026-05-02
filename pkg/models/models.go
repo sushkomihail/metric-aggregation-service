@@ -5,12 +5,19 @@ import (
 )
 
 type MetricType int
+type HttpAggregationValue string
 
 const (
 	Unknown MetricType = iota
 	Counter
 	Gauge
 	Histogram
+)
+
+const (
+	Duration     HttpAggregationValue = "duration"
+	RequestSize  HttpAggregationValue = "request_size"
+	ResponseSize HttpAggregationValue = "response_size"
 )
 
 type Metric struct {
@@ -23,15 +30,14 @@ type Metric struct {
 }
 
 type HttpMetric struct {
-	Method   string `json:"method"`
-	Endpoint string `json:"endpoint"`
-	// TODO: remove headers
-	Headers      map[string][]string `json:"headers"`
-	Code         int                 `json:"code"`
-	Duration     time.Duration       `json:"duration"`
-	RequestSize  int64               `json:"request_size"`
-	ResponseSize int64               `json:"response_size"`
-	Timestamp    time.Time           `json:"timestamp"`
+	Id           int           `json:"id" redis:"id"`
+	Method       string        `json:"method" redis:"method"`
+	Endpoint     string        `json:"endpoint" redis:"endpoint"`
+	Code         int           `json:"code" redis:"code"`
+	Duration     time.Duration `json:"duration" redis:"duration"`
+	RequestSize  int64         `json:"request_size" redis:"request_size"`
+	ResponseSize int64         `json:"response_size" redis:"response_size"`
+	Timestamp    time.Time     `json:"timestamp" redis:"timestamp"`
 }
 
 type AggregatedMetric struct {
@@ -46,4 +52,7 @@ type AggregatedMetric struct {
 	P95       float64   `redis:"p95"`
 	P99       float64   `redis:"p99"`
 	CreatedAt time.Time `redis:"created_at"`
+}
+
+type AggregatedHttpMetric struct {
 }
