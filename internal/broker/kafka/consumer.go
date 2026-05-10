@@ -3,22 +3,33 @@ package kafka
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
+	"github.com/sushkomihail/metric-aggregation-service/internal/logger"
 	"github.com/sushkomihail/metric-aggregation-service/internal/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/internal/service"
 	"github.com/sushkomihail/metric-aggregation-service/pkg/models"
 )
 
 type Consumer struct {
-	reader     *kafka.Reader
-	aggregator *service.Aggregator
+	reader      *kafka.Reader
+	readTimeout time.Duration
+	aggregator  *service.Aggregator
+	log         *logger.Logger
 }
 
-func NewConsumer(config config.KafkaConfig, aggregator *service.Aggregator, topic, groupId string) *Consumer {
+func NewConsumer(
+	config config.KafkaConfig,
+	readTimeout time.Duration,
+	aggregator *service.Aggregator,
+	topic, groupId string,
+	log *logger.Logger,
+) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  strings.Split(config.Servers, ","),
 		GroupID:  groupId,
@@ -28,38 +39,74 @@ func NewConsumer(config config.KafkaConfig, aggregator *service.Aggregator, topi
 	})
 
 	return &Consumer{
-		reader:     reader,
-		aggregator: aggregator,
+		reader:      reader,
+		readTimeout: readTimeout,
+		aggregator:  aggregator,
+		log:         log,
 	}
 }
 
 func (c *Consumer) Consume(ctx context.Context) {
 	for {
-		message, err := c.reader.ReadMessage(ctx)
-		if err != nil {
-			log.Printf("error reading kafka message: %s\n", err)
-			continue
+		select {
+		case <-ctx.Done():
+			c.log.Info("Kafka consumer stopped by context")
+			return
+		default:
+			if err := c.readMessage(ctx); err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+
+				c.log.Error("Error consuming message", "error", err)
+
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(c.readTimeout):
+				}
+			}
 		}
-
-		log.Printf("kafka message: %s\n", string(message.Value))
-
-		var metric models.HttpMetric
-		if err = json.Unmarshal(message.Value, &metric); err != nil {
-			log.Printf("error unmarshalling http metric: %s\n", err)
-			continue
-		}
-
-		metrics.ObserveHttpRequestsTotal(metric.Method, metric.Endpoint, metric.Code)
-		metrics.ObserveHttpRequestDuration(metric.Method, metric.Endpoint, metric.Duration)
-		metrics.ObserveHttpRequestSize(metric.Method, metric.Endpoint, metric.RequestSize)
-		metrics.ObserveHttpResponseSize(metric.Method, metric.Endpoint, metric.ResponseSize)
-
-		if err = c.aggregator.AddHttpMetric(ctx, &metric); err != nil {
-			log.Printf("%v\n", err)
-		}
-
-		log.Printf("http metric consumed")
 	}
+}
+
+func (c *Consumer) readMessage(ctx context.Context) error {
+	readCtx, cancel := context.WithTimeout(ctx, c.readTimeout)
+	defer cancel()
+
+	message, err := c.reader.ReadMessage(readCtx)
+	if err != nil {
+		if errors.Is(readCtx.Err(), context.DeadlineExceeded) {
+			return nil
+		}
+		return fmt.Errorf("failed to read message: %w", err)
+	}
+
+	metrics.IncMetricsConsumed()
+
+	var httpMetric models.HttpMetric
+	if err = json.Unmarshal(message.Value, &httpMetric); err != nil {
+		return fmt.Errorf("failed to unmarshal HTTP metric: %w", err)
+	}
+
+	if httpMetric.TraceId == "" {
+		httpMetric.TraceId = fmt.Sprintf("kafka-%d", message.Offset)
+		c.log.Warn("HTTP metric without TraceId, generated",
+			"generated_trace_id", httpMetric.TraceId,
+			"offset", message.Offset,
+		)
+	}
+
+	metrics.ObserveHttpRequestsTotal(httpMetric.Method, httpMetric.Endpoint, httpMetric.Code)
+	metrics.ObserveHttpRequestDuration(httpMetric.Method, httpMetric.Endpoint, httpMetric.Duration)
+	metrics.ObserveHttpRequestSize(httpMetric.Method, httpMetric.Endpoint, httpMetric.RequestSize)
+	metrics.ObserveHttpResponseSize(httpMetric.Method, httpMetric.Endpoint, httpMetric.ResponseSize)
+
+	if err = c.aggregator.AddHttpMetric(ctx, &httpMetric); err != nil {
+		return fmt.Errorf("failed to add HTTP metric to storage (trace_id: %s): %w", httpMetric.TraceId, err)
+	}
+
+	return nil
 }
 
 func (c *Consumer) Close() error {

@@ -2,10 +2,14 @@ package kafka
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
+	"github.com/sushkomihail/metric-aggregation-service/internal/logger"
+	"github.com/sushkomihail/metric-aggregation-service/internal/metrics"
 )
 
 const (
@@ -14,16 +18,25 @@ const (
 
 type Producer struct {
 	writer *kafka.Writer
+	log    *logger.Logger
 }
 
-func NewProducer(config config.KafkaConfig) *Producer {
+func NewProducer(config config.KafkaConfig, log *logger.Logger) *Producer {
+	brokers := strings.Split(config.Servers, ",")
+
 	writer := &kafka.Writer{
-		Addr:     kafka.TCP(strings.Split(config.Servers, ",")...),
-		Balancer: &kafka.LeastBytes{},
+		Addr:         kafka.TCP(brokers...),
+		Balancer:     &kafka.LeastBytes{},
+		BatchSize:    100,
+		BatchTimeout: 10 * time.Millisecond,
+		RequiredAcks: kafka.RequireOne,
+		Compression:  kafka.Snappy,
+		Async:        false,
 	}
 
 	return &Producer{
 		writer: writer,
+		log:    log,
 	}
 }
 
@@ -33,8 +46,14 @@ func (p *Producer) Produce(ctx context.Context, message []byte, topic string) er
 		Value: message,
 	}
 
-	err := p.writer.WriteMessages(ctx, kafkaMsg)
-	return err
+	if err := p.writer.WriteMessages(ctx, kafkaMsg); err != nil {
+		return fmt.Errorf("failed to write message to kafka (topic: %s): %w", topic, err)
+	}
+
+	metrics.IncMetricsProduced()
+
+	p.log.Debug("Message produced successfully", "topic", topic)
+	return nil
 }
 
 func (p *Producer) Close() error {

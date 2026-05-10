@@ -7,6 +7,9 @@ import (
 )
 
 const (
+	defaultPostgresFlushInterval = 10 * time.Minute
+	defaultPostgresStorageTime   = 12 * time.Hour
+
 	defaultRedisDb           = 0
 	defaultRedisMaxRetries   = 10
 	defaultRedisDialTimeout  = 10 * time.Second
@@ -18,14 +21,19 @@ type Config struct {
 	postgresConfig PostgresConfig
 	redisConfig    RedisConfig
 	kafkaConfig    KafkaConfig
+	LogLevel       string
+	MetricsPort    string
+	GrpcPort       string
 }
 
 type PostgresConfig struct {
-	Addr     string
-	Port     string
-	User     string
-	Password string
-	DB       string
+	Addr          string
+	Port          string
+	User          string
+	Password      string
+	DB            string
+	FlushInterval time.Duration
+	StorageTime   time.Duration
 }
 
 type RedisConfig struct {
@@ -47,6 +55,21 @@ func (c *Config) Load() {
 	c.loadPostgresConfig()
 	c.loadRedisConfig()
 	c.loadKafkaConfig()
+
+	c.LogLevel = os.Getenv("LOG_LEVEL")
+	if c.LogLevel == "" {
+		c.LogLevel = "info"
+	}
+
+	c.MetricsPort = os.Getenv("METRICS_PORT")
+	if c.MetricsPort == "" {
+		c.MetricsPort = ":8081"
+	}
+
+	c.GrpcPort = os.Getenv("GRPC_PORT")
+	if c.GrpcPort == "" {
+		c.GrpcPort = ":8080"
+	}
 }
 
 func (c *Config) PostgresConfig() PostgresConfig {
@@ -67,6 +90,18 @@ func (c *Config) loadPostgresConfig() {
 	c.postgresConfig.User = os.Getenv("POSTGRES_USER")
 	c.postgresConfig.Password = os.Getenv("POSTGRES_PASSWORD")
 	c.postgresConfig.DB = os.Getenv("POSTGRES_DB")
+
+	flushInterval, err := time.ParseDuration(os.Getenv("POSTGRES_FLUSH_INTERVAL"))
+	if err != nil {
+		flushInterval = defaultPostgresFlushInterval
+	}
+	c.postgresConfig.FlushInterval = flushInterval
+
+	storageTime, err := time.ParseDuration(os.Getenv("POSTGRES_STORAGE_TIME"))
+	if err != nil {
+		storageTime = defaultPostgresStorageTime
+	}
+	c.postgresConfig.StorageTime = storageTime
 }
 
 func (c *Config) loadRedisConfig() {

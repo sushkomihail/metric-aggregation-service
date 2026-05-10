@@ -5,6 +5,7 @@ import (
 )
 
 type MetricType int
+type MetricSource string
 type HttpAggregationValue string
 
 const (
@@ -15,22 +16,37 @@ const (
 )
 
 const (
+	Grpc MetricSource = "grpc"
+	Http MetricSource = "http"
+)
+
+func (s MetricSource) String() string {
+	return string(s)
+}
+
+const (
 	Duration     HttpAggregationValue = "duration"
 	RequestSize  HttpAggregationValue = "request_size"
 	ResponseSize HttpAggregationValue = "response_size"
 )
 
+func (v HttpAggregationValue) String() string {
+	return string(v)
+}
+
 type Metric struct {
-	Id        int
-	Name      string
-	Value     float64
-	Type      MetricType
-	Tags      map[string]string
-	Timestamp time.Time
+	Id        int               `json:"id" redis:"id"`
+	TraceId   string            `json:"trace_id" redis:"trace_id"`
+	Name      string            `json:"name" redis:"name"`
+	Value     float64           `json:"value" redis:"value"`
+	Type      MetricType        `json:"type" redis:"type"`
+	Tags      map[string]string `json:"tags" redis:"tags"`
+	Timestamp time.Time         `json:"timestamp" redis:"timestamp"`
 }
 
 type HttpMetric struct {
 	Id           int           `json:"id" redis:"id"`
+	TraceId      string        `json:"trace_id" redis:"trace_id"`
 	Method       string        `json:"method" redis:"method"`
 	Endpoint     string        `json:"endpoint" redis:"endpoint"`
 	Code         int           `json:"code" redis:"code"`
@@ -41,18 +57,16 @@ type HttpMetric struct {
 }
 
 type AggregatedMetric struct {
-	Id        int       `redis:"id"`
-	Name      string    `redis:"name"`
-	Count     int       `redis:"count"`
-	Rate      float64   `redis:"rate"`
-	Sum       float64   `redis:"sum"`
-	Min       float64   `redis:"min"`
-	Max       float64   `redis:"max"`
-	P50       float64   `redis:"p50"`
-	P95       float64   `redis:"p95"`
-	P99       float64   `redis:"p99"`
-	CreatedAt time.Time `redis:"created_at"`
-}
-
-type AggregatedHttpMetric struct {
+	Id        int       `json:"id" redis:"id"`
+	TraceId   string    `json:"trace_id,omitempty" redis:"trace_id"`
+	Name      string    `json:"name" redis:"name"`
+	Count     int       `json:"count" redis:"count"`
+	Sum       float64   `json:"sum" redis:"sum"`
+	Min       float64   `json:"min" redis:"min"`
+	Max       float64   `json:"max" redis:"max"`
+	P50       float64   `json:"p50" redis:"p50"`
+	P95       float64   `json:"p95" redis:"p95"`
+	P99       float64   `json:"p99" redis:"p99"`
+	CreatedAt time.Time `json:"created_at" redis:"created_at"`
+	Source    string    `json:"source" redis:"source"`
 }

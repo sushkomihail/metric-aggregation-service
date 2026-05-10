@@ -53,7 +53,3 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:9094
     depends_on:
       - kafka1
-
-volumes:
-  grafana_storage: {}
-
