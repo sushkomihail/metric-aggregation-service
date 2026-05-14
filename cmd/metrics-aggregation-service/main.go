@@ -13,12 +13,13 @@ import (
 	pb "github.com/sushkomihail/metric-aggregation-service/api/proto/generated/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/internal/broker/kafka"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
-	srv "github.com/sushkomihail/metric-aggregation-service/internal/grpc"
+	grpcsrv "github.com/sushkomihail/metric-aggregation-service/internal/grpc"
 	"github.com/sushkomihail/metric-aggregation-service/internal/logger"
-	"github.com/sushkomihail/metric-aggregation-service/internal/metrics"
+	metricssrv "github.com/sushkomihail/metric-aggregation-service/internal/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/internal/repository/db"
 	redisrepo "github.com/sushkomihail/metric-aggregation-service/internal/repository/redis"
 	"github.com/sushkomihail/metric-aggregation-service/internal/service"
+	"github.com/sushkomihail/metric-aggregation-service/pkg/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -39,7 +40,7 @@ func main() {
 
 	go func() {
 		log.Info("Starting metrics HTTP server", "port", cfg.MetricsPort)
-		if err := metrics.Listen(cfg.MetricsPort); err != nil {
+		if err := metricssrv.Listen(cfg.MetricsPort); err != nil {
 			log.Error("Failed to start metrics server", "error", err)
 		}
 	}()
@@ -93,7 +94,7 @@ func main() {
 		),
 	)
 
-	metricsServer := srv.NewMetricsServer(aggregator, processor, log)
+	metricsServer := grpcsrv.NewMetricsServer(aggregator, processor, log)
 	pb.RegisterMetricsServiceServer(grpcServer, metricsServer)
 
 	healthServer := health.NewServer()
