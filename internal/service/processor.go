@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/sushkomihail/metric-aggregation-service/internal/logger"
-	prommetrics "github.com/sushkomihail/metric-aggregation-service/internal/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/internal/repository/db"
 	"github.com/sushkomihail/metric-aggregation-service/internal/repository/redis"
+	prommetrics "github.com/sushkomihail/metric-aggregation-service/pkg/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/pkg/models"
 )
 
