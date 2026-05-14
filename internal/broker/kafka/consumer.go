@@ -11,9 +11,13 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
 	"github.com/sushkomihail/metric-aggregation-service/internal/logger"
-	"github.com/sushkomihail/metric-aggregation-service/internal/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/internal/service"
+	"github.com/sushkomihail/metric-aggregation-service/pkg/metrics"
 	"github.com/sushkomihail/metric-aggregation-service/pkg/models"
+)
+
+const (
+	HttpTopic = "http-topic"
 )
 
 type Consumer struct {
