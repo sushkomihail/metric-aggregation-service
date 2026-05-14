@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
 	"github.com/sushkomihail/metric-aggregation-service/internal/logger"
@@ -367,22 +366,19 @@ func (p *Postgres) FlushWithInterval(ctx context.Context) {
 }
 
 func (p *Postgres) flush(ctx context.Context) error {
-	interval := pgtype.Interval{
-		Microseconds: p.storageTime.Microseconds(),
-		Valid:        true,
-	}
+	deleteBefore := time.Now().Add(-p.storageTime)
 
-	err := p.deleteExpiredMetrics(ctx, interval)
+	err := p.deleteExpiredMetrics(ctx, deleteBefore)
 	if err != nil {
 		return fmt.Errorf("failed to delete expired metrics: %w", err)
 	}
 
-	err = p.deleteExpiredHttpMetrics(ctx, interval)
+	err = p.deleteExpiredHttpMetrics(ctx, deleteBefore)
 	if err != nil {
 		return fmt.Errorf("failed to delete expired http metrics: %w", err)
 	}
 
-	err = p.deleteExpiredAggregatedMetrics(ctx, interval)
+	err = p.deleteExpiredAggregatedMetrics(ctx, deleteBefore)
 	if err != nil {
 		return fmt.Errorf("failed to delete expired aggregated metrics: %w", err)
 	}
@@ -390,12 +386,12 @@ func (p *Postgres) flush(ctx context.Context) error {
 	return nil
 }
 
-func (p *Postgres) deleteExpiredMetrics(ctx context.Context, interval pgtype.Interval) error {
+func (p *Postgres) deleteExpiredMetrics(ctx context.Context, deleteBefore time.Time) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	query := `DELETE FROM metrics WHERE created_at < $1 - $2::interval`
-	_, err := p.pool.Exec(ctx, query, time.Now(), interval)
+	query := `DELETE FROM metrics WHERE created_at < $1`
+	_, err := p.pool.Exec(ctx, query, deleteBefore)
 	if err != nil {
 		return fmt.Errorf("failed to delete expired metrics: %w", err)
 	}
@@ -403,12 +399,12 @@ func (p *Postgres) deleteExpiredMetrics(ctx context.Context, interval pgtype.Int
 	return nil
 }
 
-func (p *Postgres) deleteExpiredHttpMetrics(ctx context.Context, interval pgtype.Interval) error {
+func (p *Postgres) deleteExpiredHttpMetrics(ctx context.Context, deleteBefore time.Time) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	query := `DELETE FROM http_metrics WHERE created_at < $1 - $2::interval`
-	_, err := p.pool.Exec(ctx, query, time.Now(), interval)
+	query := `DELETE FROM http_metrics WHERE created_at < $1`
+	_, err := p.pool.Exec(ctx, query, deleteBefore)
 	if err != nil {
 		return fmt.Errorf("failed to delete expired metrics: %w", err)
 	}
@@ -416,12 +412,12 @@ func (p *Postgres) deleteExpiredHttpMetrics(ctx context.Context, interval pgtype
 	return nil
 }
 
-func (p *Postgres) deleteExpiredAggregatedMetrics(ctx context.Context, interval pgtype.Interval) error {
+func (p *Postgres) deleteExpiredAggregatedMetrics(ctx context.Context, deleteBefore time.Time) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	query := `DELETE FROM aggregated_metrics WHERE created_at < $1 - $2::interval`
-	_, err := p.pool.Exec(ctx, query, time.Now(), interval)
+	query := `DELETE FROM aggregated_metrics WHERE created_at < $1`
+	_, err := p.pool.Exec(ctx, query, deleteBefore)
 	if err != nil {
 		return fmt.Errorf("failed to delete expired metrics: %w", err)
 	}
