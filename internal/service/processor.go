@@ -353,17 +353,7 @@ func (p *Processor) getUnprocessedMetrics(ctx context.Context, start, end time.T
 		return nil, fmt.Errorf("failed to get metrics from redis: %w", err)
 	}
 
-	if len(results) == 0 {
-		return p.db.GetUnprocessedMetrics(ctx, start, end)
-	}
-
-	metrics, err := zRangeResultsToDomainModels[models.Metric](results)
-	if err != nil {
-		p.log.Warn("Failed to get metrics from redis", "error", err)
-		return p.db.GetUnprocessedMetrics(ctx, start, end)
-	}
-
-	return metrics, nil
+	return zRangeResultsToDomainModels[models.Metric](results)
 }
 
 func (p *Processor) getUnprocessedHttpMetrics(ctx context.Context, start, end time.Time) ([]*models.HttpMetric, error) {
@@ -372,17 +362,7 @@ func (p *Processor) getUnprocessedHttpMetrics(ctx context.Context, start, end ti
 		return nil, fmt.Errorf("failed to get metrics from redis: %w", err)
 	}
 
-	if len(results) == 0 {
-		return p.db.GetUnprocessedHttpMetrics(ctx, start, end)
-	}
-
-	metrics, err := zRangeResultsToDomainModels[models.HttpMetric](results)
-	if err != nil {
-		p.log.Warn("Failed to get metrics from redis", "error", err)
-		return p.db.GetUnprocessedHttpMetrics(ctx, start, end)
-	}
-
-	return metrics, nil
+	return zRangeResultsToDomainModels[models.HttpMetric](results)
 }
 
 func zRangeResultsToDomainModels[T any](results []string) ([]*T, error) {

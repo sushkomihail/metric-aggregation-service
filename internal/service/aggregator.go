@@ -35,10 +35,10 @@ func (a *Aggregator) AddMetric(ctx context.Context, metric *models.Metric) error
 		a.log.Warn("Failed to save metric to Redis", "trace_id", metric.TraceId, "error", err)
 	}
 
-	if err := a.db.AddMetric(ctx, metric); err != nil {
-		a.log.Error("Failed to save metric to PostgreSQL", "trace_id", metric.TraceId, "error", err)
-		return fmt.Errorf("failed to save metric: %w", err)
-	}
+	//if err := a.db.AddMetric(ctx, metric); err != nil {
+	//	a.log.Error("Failed to save metric to PostgreSQL", "trace_id", metric.TraceId, "error", err)
+	//	return fmt.Errorf("failed to save metric: %w", err)
+	//}
 
 	a.log.Info("Metric added successfully", "trace_id", metric.TraceId, "metric_id", metric.Id)
 	return nil
@@ -54,10 +54,10 @@ func (a *Aggregator) AddHttpMetric(ctx context.Context, metric *models.HttpMetri
 		a.log.Warn("Failed to save HTTP metric to Redis", "trace_id", metric.TraceId, "error", err)
 	}
 
-	if err := a.db.AddHttpMetric(ctx, metric); err != nil {
-		a.log.Error("Failed to save HTTP metric to PostgreSQL", "trace_id", metric.TraceId, "error", err)
-		return fmt.Errorf("failed to save http metric: %w", err)
-	}
+	//if err := a.db.AddHttpMetric(ctx, metric); err != nil {
+	//	a.log.Error("Failed to save HTTP metric to PostgreSQL", "trace_id", metric.TraceId, "error", err)
+	//	return fmt.Errorf("failed to save http metric: %w", err)
+	//}
 
 	a.log.Info("HTTP metric added successfully",
 		"trace_id", metric.TraceId,
