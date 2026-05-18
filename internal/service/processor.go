@@ -64,17 +64,11 @@ func (p *Processor) processAllMetrics(ctx context.Context) {
 	batchId := fmt.Sprintf("batch_%d", startTime.Unix())
 
 	if err := p.processMetrics(ctx, batchId); err != nil {
-		p.log.Error("Failed to process metrics",
-			"batch_id", batchId,
-			"error", err,
-		)
+		p.log.Error("Failed to process metrics", "batch_id", batchId, "error", err)
 	}
 
 	if err := p.processHttpMetrics(ctx, batchId); err != nil {
-		p.log.Error("Failed to process HTTP metrics",
-			"batch_id", batchId,
-			"error", err,
-		)
+		p.log.Error("Failed to process HTTP metrics", "batch_id", batchId, "error", err)
 	}
 }
 
@@ -98,6 +92,8 @@ func (p *Processor) processMetrics(ctx context.Context, batchId string) error {
 		if len(group) == 0 {
 			continue
 		}
+
+		processingStart := time.Now()
 
 		traceIds := make([]string, 0, len(group))
 
@@ -136,11 +132,9 @@ func (p *Processor) processMetrics(ctx context.Context, batchId string) error {
 			Source:  models.Grpc.String(),
 		}
 
-		p.log.Debug("Created aggregated metric",
-			"batch_id", batchId,
-			"metric_name", groupKey,
-			"count", metric.Count,
-		)
+		p.log.Debug("Created aggregated metric", "batch_id", batchId, "metric_name", metric.Name)
+		prommetrics.AddMetricsProcessedTotal(metric.Count)
+		prommetrics.IncAggregatedMetricsTotal()
 
 		if err = p.db.AddAggregatedMetric(ctx, metric); err != nil {
 			p.log.Error("Failed to save aggregated metric to database",
@@ -151,34 +145,12 @@ func (p *Processor) processMetrics(ctx context.Context, batchId string) error {
 			continue
 		}
 
-		// TODO: remove this if it's not used
-		cacheKey := fmt.Sprintf("aggregated:metric:%s", metric.Name)
-		if err = p.redis.HSet(ctx, cacheKey, metric, time.Hour); err != nil {
-			p.log.Warn("Failed to save aggregated metric to redis",
-				"batch_id", batchId,
-				"metric_name", metric.Name,
-				"error", err,
-			)
-		}
-
-		// TODO: create func
-		prommetrics.ObserveAggregatedMetricCount(metric.Name, models.Grpc.String(), metric.Count)
-		prommetrics.ObserveAggregatedMetricSum(metric.Name, models.Grpc.String(), metric.Sum)
-		prommetrics.ObserveAggregatedMetricMin(metric.Name, models.Grpc.String(), metric.Min)
-		prommetrics.ObserveAggregatedMetricMax(metric.Name, models.Grpc.String(), metric.Max)
-		prommetrics.ObserveAggregatedMetricP50(metric.Name, models.Grpc.String(), metric.P50)
-		prommetrics.ObserveAggregatedMetricP95(metric.Name, models.Grpc.String(), metric.P95)
-		prommetrics.ObserveAggregatedMetricP99(metric.Name, models.Grpc.String(), metric.P99)
+		prommetrics.ObserveProcessingDuration(metric.Name, time.Since(processingStart))
+		prommetrics.ObserveAggregatedMetric(metric, models.Grpc.String())
 
 		processedIds = append(processedIds, metric.Id)
 	}
 
-	if err = p.db.MarkMetricsAsProcessed(ctx, processedIds); err != nil {
-		p.log.Warn("Failed to mark metrics as processed", "batch_id", batchId, "error", err)
-	}
-
-	// TODO: write normal status or remove it
-	prommetrics.ObserveProcessedTotal("ok")
 	return nil
 }
 
@@ -202,6 +174,8 @@ func (p *Processor) processHttpMetrics(ctx context.Context, batchId string) erro
 		if len(group) == 0 {
 			continue
 		}
+
+		processingStart := time.Now()
 
 		groupSize := len(group)
 		aggregations := []models.HttpAggregationValue{
@@ -230,11 +204,9 @@ func (p *Processor) processHttpMetrics(ctx context.Context, batchId string) erro
 				Source:    models.Http.String(),
 			}
 
-			p.log.Debug("Created HTTP aggregated metric",
-				"batch_id", batchId,
-				"metric_name", metric.Name,
-				"count", metric.Count,
-			)
+			p.log.Debug("Created HTTP aggregated metric", "batch_id", batchId, "metric_name", metric.Name)
+			prommetrics.AddMetricsProcessedTotal(metric.Count)
+			prommetrics.IncAggregatedMetricsTotal()
 
 			if err = p.db.AddAggregatedMetric(ctx, metric); err != nil {
 				p.log.Error("Failed to save HTTP aggregated metric",
@@ -245,26 +217,13 @@ func (p *Processor) processHttpMetrics(ctx context.Context, batchId string) erro
 				continue
 			}
 
-			// TODO: remove this if it's not used
-			cacheKey := fmt.Sprintf("aggregated:http:%s", metric.Name)
-			if err = p.redis.HSet(ctx, cacheKey, metric, time.Hour); err != nil {
-				p.log.Warn("Failed to cache HTTP aggregated metric",
-					"batch_id", batchId,
-					"metric_name", metric.Name,
-					"error", err,
-				)
-			}
+			prommetrics.ObserveProcessingDuration(metric.Name, time.Since(processingStart))
+			prommetrics.ObserveAggregatedMetric(metric, models.Http.String())
 
 			processedIds = append(processedIds, metric.Id)
 		}
 	}
 
-	if err = p.db.MarkMetricsAsProcessed(ctx, processedIds); err != nil {
-		p.log.Warn("Failed to mark metrics as processed", "batch_id", batchId, "error", err)
-	}
-
-	// TODO: write normal status or remove it
-	prommetrics.ObserveProcessedTotal("ok")
 	return nil
 }
 

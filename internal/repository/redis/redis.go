@@ -8,13 +8,16 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sushkomihail/metric-aggregation-service/internal/config"
+	"github.com/sushkomihail/metric-aggregation-service/internal/logger"
+	"github.com/sushkomihail/metric-aggregation-service/pkg/metrics"
 )
 
 type Client struct {
 	rdb *redis.Client
+	log *logger.Logger
 }
 
-func NewClient(ctx context.Context, config config.RedisConfig) (*Client, error) {
+func NewClient(ctx context.Context, config config.RedisConfig, log *logger.Logger) (*Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         config.Addr,
 		Password:     config.Password,
@@ -32,6 +35,7 @@ func NewClient(ctx context.Context, config config.RedisConfig) (*Client, error) 
 
 	return &Client{
 		rdb: rdb,
+		log: log,
 	}, nil
 }
 
@@ -52,10 +56,55 @@ func (c *Client) HSet(ctx context.Context, key string, value interface{}, expire
 	return nil
 }
 
+func (c *Client) SendMemoryInfo(ctx context.Context, interval time.Duration) error {
+	timer := time.NewTicker(interval)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context canceled: %w", ctx.Err())
+		case <-timer.C:
+			res, err := c.rdb.Info(ctx, "memory").Result()
+			if err != nil {
+				c.log.Error("Failed to get memory info", "error", err)
+				continue
+			}
+
+			metrics.ObserveRedisUsedMemory(res)
+		}
+	}
+}
+
 func (c *Client) HGetAll(ctx context.Context, key string, dest interface{}) error {
 	err := c.rdb.HGetAll(ctx, key).Scan(dest)
 	if err != nil {
 		return fmt.Errorf("failed to get hash: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) ZAddBatch(ctx context.Context, key string, members []interface{}) error {
+	pipe := c.rdb.Pipeline()
+
+	for _, member := range members {
+		bytes, err := json.Marshal(member)
+		if err != nil {
+			return fmt.Errorf("failed to marshal: %w", err)
+		}
+
+		score := float64(time.Now().Unix())
+
+		pipe.ZAdd(ctx, key, redis.Z{
+			Score:  score,
+			Member: bytes,
+		})
+	}
+
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("pipeline failed: %w", err)
 	}
 
 	return nil
@@ -83,12 +132,10 @@ func (c *Client) ZAddWithUnixScore(ctx context.Context, key string, member inter
 }
 
 func (c *Client) ZRangeByUnixScore(ctx context.Context, key string, start, end time.Time) ([]string, error) {
-	startUnix := start.Unix()
-	endUnix := end.Unix()
 	results, err := c.rdb.ZRangeArgs(ctx, redis.ZRangeArgs{
 		Key:     key,
-		Start:   startUnix,
-		Stop:    endUnix,
+		Start:   start.Unix(),
+		Stop:    end.Unix(),
 		ByScore: true,
 	}).Result()
 	if err != nil {

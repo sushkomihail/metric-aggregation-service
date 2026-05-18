@@ -12,58 +12,59 @@ import (
 )
 
 type Aggregator struct {
-	db    db.DB
-	redis *redis.Client
-	log   *logger.Logger
+	db               db.DB
+	redis            *redis.Client
+	batchSize        int
+	metricsBatch     chan *models.Metric
+	httpMetricsBatch chan *models.HttpMetric
+	log              *logger.Logger
 }
 
-func NewAggregator(db db.DB, redis *redis.Client, log *logger.Logger) *Aggregator {
+func NewAggregator(db db.DB, redis *redis.Client, batchSize int, log *logger.Logger) *Aggregator {
 	return &Aggregator{
-		db:    db,
-		redis: redis,
-		log:   log,
+		db:               db,
+		redis:            redis,
+		batchSize:        batchSize,
+		metricsBatch:     make(chan *models.Metric, batchSize),
+		httpMetricsBatch: make(chan *models.HttpMetric, batchSize),
+		log:              log,
 	}
 }
 
-func (a *Aggregator) AddMetric(ctx context.Context, metric *models.Metric) error {
+func (a *Aggregator) Start(ctx context.Context, flushInterval time.Duration) {
+	go a.runMetricsWorker(ctx, flushInterval)
+	go a.runHTTPMetricsWorker(ctx, flushInterval)
+}
+
+func (a *Aggregator) AddMetric(metric *models.Metric) error {
 	if err := validateMetric(metric); err != nil {
 		a.log.Error("Invalid metric", "trace_id", metric.TraceId, "error", err)
 		return fmt.Errorf("invalid metric: %w", err)
 	}
 
-	if err := a.redis.ZAddWithUnixScore(ctx, "metrics:unprocessed", metric, time.Hour); err != nil {
-		a.log.Warn("Failed to save metric to Redis", "trace_id", metric.TraceId, "error", err)
+	select {
+	case a.metricsBatch <- metric:
+	default:
+		a.log.Warn("Metrics buffer overflow, dropping metric", "trace_id", metric.TraceId)
+		return fmt.Errorf("metrics buffer overflow")
 	}
 
-	//if err := a.db.AddMetric(ctx, metric); err != nil {
-	//	a.log.Error("Failed to save metric to PostgreSQL", "trace_id", metric.TraceId, "error", err)
-	//	return fmt.Errorf("failed to save metric: %w", err)
-	//}
-
-	a.log.Info("Metric added successfully", "trace_id", metric.TraceId, "metric_id", metric.Id)
 	return nil
 }
 
-func (a *Aggregator) AddHttpMetric(ctx context.Context, metric *models.HttpMetric) error {
+func (a *Aggregator) AddHttpMetric(metric *models.HttpMetric) error {
 	if err := validateHttpMetric(metric); err != nil {
 		a.log.Error("Invalid HTTP metric", "trace_id", metric.TraceId, "error", err)
 		return fmt.Errorf("invalid HTTP metric: %w", err)
 	}
 
-	if err := a.redis.ZAddWithUnixScore(ctx, "http_metrics:unprocessed", metric, time.Hour); err != nil {
-		a.log.Warn("Failed to save HTTP metric to Redis", "trace_id", metric.TraceId, "error", err)
+	select {
+	case a.httpMetricsBatch <- metric:
+	default:
+		a.log.Warn("HTTP metrics buffer overflow, dropping metric", "trace_id", metric.TraceId)
+		return fmt.Errorf("http metrics buffer overflow")
 	}
 
-	//if err := a.db.AddHttpMetric(ctx, metric); err != nil {
-	//	a.log.Error("Failed to save HTTP metric to PostgreSQL", "trace_id", metric.TraceId, "error", err)
-	//	return fmt.Errorf("failed to save http metric: %w", err)
-	//}
-
-	a.log.Info("HTTP metric added successfully",
-		"trace_id", metric.TraceId,
-		"method", metric.Method,
-		"endpoint", metric.Endpoint,
-	)
 	return nil
 }
 
@@ -116,6 +117,76 @@ func (a *Aggregator) GetAggregatedMetrics(
 	)
 
 	return metrics, nil
+}
+
+func (a *Aggregator) runMetricsWorker(ctx context.Context, flushInterval time.Duration) {
+	ticker := time.NewTicker(flushInterval)
+	defer ticker.Stop()
+
+	metrics := make([]interface{}, 0, a.batchSize)
+
+	flush := func() {
+		if len(metrics) == 0 {
+			return
+		}
+		if err := a.redis.ZAddBatch(ctx, "metrics:unprocessed", metrics); err != nil {
+			a.log.Error("Failed to add metrics batch to Redis", "error", err)
+			return
+		}
+
+		metrics = metrics[:0]
+		a.log.Info("Metrics successfully added to Redis")
+	}
+
+	for {
+		select {
+		case metric := <-a.metricsBatch:
+			metrics = append(metrics, metric)
+			if len(metrics) >= a.batchSize {
+				flush()
+			}
+		case <-ticker.C:
+			flush()
+		case <-ctx.Done():
+			flush()
+			return
+		}
+	}
+}
+
+func (a *Aggregator) runHTTPMetricsWorker(ctx context.Context, flushInterval time.Duration) {
+	ticker := time.NewTicker(flushInterval)
+	defer ticker.Stop()
+
+	httpMetrics := make([]interface{}, 0, a.batchSize)
+
+	flush := func() {
+		if len(httpMetrics) == 0 {
+			return
+		}
+		if err := a.redis.ZAddBatch(ctx, "http_metrics:unprocessed", httpMetrics); err != nil {
+			a.log.Warn("Failed to add http metrics batch to Redis", "error", err)
+			return
+		}
+
+		httpMetrics = httpMetrics[:0]
+		a.log.Info("HTTP metrics successfully added to Redis")
+	}
+
+	for {
+		select {
+		case httpMetric := <-a.httpMetricsBatch:
+			httpMetrics = append(httpMetrics, httpMetric)
+			if len(httpMetrics) >= a.batchSize {
+				flush()
+			}
+		case <-ticker.C:
+			flush()
+		case <-ctx.Done():
+			flush()
+			return
+		}
+	}
 }
 
 func validateMetric(metric *models.Metric) error {

@@ -41,19 +41,14 @@ func (s *MetricsServer) SendMetric(ctx context.Context, req *pb.MetricRequest) (
 	metrics.IncActiveConnections()
 	defer metrics.DecActiveConnections()
 
-	traceId := s.extractOrGenerateTraceID(ctx)
-	startTime := time.Now()
-	defer func() {
-		metrics.ObserveProcessingDuration(req.GetName(), time.Since(startTime))
-	}()
-
+	traceId := extractOrGenerateTraceId(ctx)
 	metric, err := getDomainMetricStruct(req, traceId)
 	if err != nil {
 		s.log.Error("Failed to convert metric", "trace_id", traceId, "error", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid metric format")
 	}
 
-	err = s.aggregator.AddMetric(ctx, metric)
+	err = s.aggregator.AddMetric(metric)
 	if err != nil {
 		s.log.Error("Failed to add metric", "trace_id", traceId, "error", err)
 		return &pb.MetricResponse{
@@ -102,7 +97,7 @@ func (s *MetricsServer) StreamMetrics(stream pb.MetricsService_StreamMetricsServ
 		}
 
 		receivedCount++
-		traceId := s.extractOrGenerateTraceID(stream.Context())
+		traceId := extractOrGenerateTraceId(stream.Context())
 		metric, err := getDomainMetricStruct(req, traceId)
 		if err != nil {
 			failedCount++
@@ -117,7 +112,7 @@ func (s *MetricsServer) StreamMetrics(stream pb.MetricsService_StreamMetricsServ
 			continue
 		}
 
-		if err = s.aggregator.AddMetric(stream.Context(), metric); err != nil {
+		if err = s.aggregator.AddMetric(metric); err != nil {
 			failedCount++
 			errMsg := fmt.Sprintf("metric %d: %v", receivedCount, err)
 			errors = append(errors, errMsg)
@@ -136,7 +131,7 @@ func (s *MetricsServer) GetAggregatedMetrics(
 	ctx context.Context,
 	req *pb.AggregatedMetricsRequest,
 ) (*pb.AggregatedMetricsResponse, error) {
-	traceId := s.extractOrGenerateTraceID(ctx)
+	traceId := extractOrGenerateTraceId(ctx)
 	start, end := req.TimeWindowStart.AsTime(), req.TimeWindowEnd.AsTime()
 
 	domainMetrics, err := s.aggregator.GetAggregatedMetrics(ctx, start, end, req.MetricName, req.Tags)
@@ -155,7 +150,7 @@ func (s *MetricsServer) GetAggregatedMetrics(
 	}, nil
 }
 
-func (s *MetricsServer) extractOrGenerateTraceID(ctx context.Context) string {
+func extractOrGenerateTraceId(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
 		if traceIds := md.Get("x-trace-id"); len(traceIds) > 0 {

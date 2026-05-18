@@ -103,10 +103,8 @@ func (c *Consumer) readMessage(ctx context.Context) error {
 
 	metrics.ObserveHttpRequestsTotal(httpMetric.Method, httpMetric.Endpoint, httpMetric.Code)
 	metrics.ObserveHttpRequestDuration(httpMetric.Method, httpMetric.Endpoint, httpMetric.Duration)
-	metrics.ObserveHttpRequestSize(httpMetric.Method, httpMetric.Endpoint, httpMetric.RequestSize)
-	metrics.ObserveHttpResponseSize(httpMetric.Method, httpMetric.Endpoint, httpMetric.ResponseSize)
 
-	if err = c.aggregator.AddHttpMetric(ctx, &httpMetric); err != nil {
+	if err = c.aggregator.AddHttpMetric(&httpMetric); err != nil {
 		return fmt.Errorf("failed to add HTTP metric to storage (trace_id: %s): %w", httpMetric.TraceId, err)
 	}
 
